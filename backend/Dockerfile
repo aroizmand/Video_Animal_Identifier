@@ -1,12 +1,12 @@
 # Start from an official Python base image
 FROM python:3.11-slim
 
-# --- ADD THIS BLOCK TO PATCH VULNERABILITIES ---
 # Update the package list and upgrade all installed packages to their latest versions
 RUN apt-get update && apt-get upgrade -y && \
+    # --- ADD THIS LINE TO INSTALL THE MISSING GRAPHICS LIBRARY ---
+    apt-get install -y libgl1-mesa-glx && \
     # Clean up the package cache to keep the image size small
     rm -rf /var/lib/apt/lists/*
-# --- END OF SECURITY PATCH BLOCK ---
 
 # Set the working directory inside the container
 WORKDIR /app
