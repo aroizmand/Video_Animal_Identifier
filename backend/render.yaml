@@ -1,0 +1,40 @@
+services:
+  - name: redis
+    type: redis
+    plan: free
+
+  - name: web
+    type: web
+    plan: free
+    env: docker
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: PYTHONUNBUFFERED
+        value: 1
+
+  - name: worker
+    type: worker
+    plan: free
+    env: docker
+    image:
+      fromService:
+        type: web
+        name: web
+    startCommand: rq worker
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: redis
+          property: connectionString
+      - key: PYTHON_VERSION
+        value: 3.11.9
