@@ -64,7 +64,6 @@ nvidia-nvjitlink-cu12==12.8.93
 nvidia-nvtx-cu12==12.8.90
 onnx==1.19.0
 onnx2torch==1.5.15
-opencv-python==4.11.0.86
 opencv-python-headless==4.10.0.84
 packaging==25.0
 pandas==2.3.2
