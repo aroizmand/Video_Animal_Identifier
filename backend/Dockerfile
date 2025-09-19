@@ -3,8 +3,8 @@ FROM python:3.11-slim
 
 # Update the package list and upgrade all installed packages to their latest versions
 RUN apt-get update && apt-get upgrade -y && \
-    # Install the graphics and threading libraries required by OpenCV
-    apt-get install -y libgl1 libglib2.0-0 && \
+    # Install the graphics and threading libraries required by OpenCV, AND FFMPEG for video codecs
+    apt-get install -y libgl1 libglib2.0-0 ffmpeg && \
     # Clean up the package cache to keep the image size small
     rm -rf /var/lib/apt/lists/*
 
