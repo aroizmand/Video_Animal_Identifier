@@ -1,11 +1,9 @@
 # Start from an official Python base image
 FROM python:3.11-slim
 
-# Update the package list and upgrade all installed packages to their latest versions
+# Install system dependencies needed for OpenCV and video codecs
 RUN apt-get update && apt-get upgrade -y && \
-    # Install the graphics and threading libraries required by OpenCV, AND FFMPEG for video codecs
     apt-get install -y libgl1 libglib2.0-0 ffmpeg && \
-    # Clean up the package cache to keep the image size small
     rm -rf /var/lib/apt/lists/*
 
 # Set the working directory inside the container
@@ -16,6 +14,11 @@ COPY requirements.txt .
 
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# --- NEW STEP: PRE-WARM THE MODEL CACHE ---
+# This command runs a short Python script to download the models during the build.
+# The downloaded files will be saved in the Docker image layer.
+RUN python -c "from speciesnet import SpeciesNetDetector, SpeciesNetClassifier; SpeciesNetDetector(); SpeciesNetClassifier()"
 
 # Copy your application code into the container
 COPY . .
