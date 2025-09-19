@@ -15,10 +15,9 @@ COPY requirements.txt .
 # Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- NEW STEP: PRE-WARM THE MODEL CACHE ---
-# This command runs a short Python script to download the models during the build.
-# The downloaded files will be saved in the Docker image layer.
-RUN python -c "from speciesnet import SpeciesNetDetector, SpeciesNetClassifier; SpeciesNetDetector(); SpeciesNetClassifier()"
+# --- UPDATED STEP: PRE-WARM THE MODEL CACHE WITH THE MODEL NAME ---
+# This command now imports DEFAULT_MODEL and passes it to the constructors.
+RUN python -c "from speciesnet import SpeciesNetDetector, SpeciesNetClassifier, DEFAULT_MODEL; SpeciesNetDetector(DEFAULT_MODEL); SpeciesNetClassifier(DEFAULT_MODEL)"
 
 # Copy your application code into the container
 COPY . .
