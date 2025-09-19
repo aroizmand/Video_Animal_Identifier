@@ -13,22 +13,20 @@
 1.  **In-Scope:**
 
     - Website with user accounts.
-    - Connection to camera traps for real-time video viewing.
+    - Ability for users to upload video clips for analysis.
     - Animal and species detection using a ML model.
     - Notification system to alert users of new detections.
     - Saves video clips of detections with metadata (date, time, species).
     - Allows users to review and download saved video clips.
-    - (Compatibility) The system will ultimately support industry-standard camera traps, following initial testing with phones and custom Arduino-based cameras.
 
 2.  **Out-of-Scope:**
 
     - Share/link accounts of people from the same organization.
-    - Save all video footage.
+    - Connect directly to trail cams.
     - Allow user to fine-tune markers and video detection.
     - Use public domain AI models.
     - Customize the model to local wildlife.
     - Save sub-divisions of the video manually.
-    - Upload videos from computer.
 
 ---
 
@@ -58,7 +56,7 @@
 
 - The user **must be able** to delete saved videos from account.
 
-- The user **must be able to** view the footage in real-time.
+- The user **must be able to** upload videos for analysis.
 
 - The user **must receive** and email notification as well as on-website notification.
 
@@ -68,23 +66,13 @@
 
 - The user **must be able** to save at most 25GB of video footage.
 
-- The user **must be able** to connect camera at most 5 camera traps to account.
-
-- The user **must be able** to disconnect camera traps from account.
-
-- The user **must be able** to modify camera trap settings.
-
-- The website **must be able** to receive footage from camera trap.
-
-- The system **must be able** to review footage with the ML model in real time.
+- The system **must** process uploaded video files with the ML model.
 
 - The system **must display** the detected species, date, and time for each saved video clip.
 
 - The system **must display** the user's current storage usage (e.g., "You are using 14.2 GB / 25 GB").
 
 - The system **must stop** saving new clips when a user's limit is reached.
-
-- The system **must display** the user's current camera count (e.g., '3 / 5 cameras used').
 
 - The system **must notify** the user (on-website or by email) when their storage is full.
 
@@ -95,7 +83,6 @@
 - **Performance:**
 
   - **Page Load:** All website pages must load in a user's browser in under 2 seconds.
-  - **Real-time Stream:** The real-time video stream must begin playing within 5 seconds of the user selecting it.
   - **Detection Speed:** The system must process a detection and send a notification to the user within 60 seconds of the event ending.
 
 - **Usability:**
@@ -147,10 +134,7 @@
 
 - **Assumptions:**
   - The 'free' and 'hobby' tiers of Vercel and Render will provide sufficient performance and reliability for the initial version of the application.
-  - Industry-standard camera traps can provide a real-time video stream that the Python backend can access.
   - The chosen object storage services (Cloudflare R2 / Backblaze B2) will be consistently cheaper than AWS S3 or Azure Blob Storage.
-  - The Python backend can capture snapshots or short clips from the real-time video stream and feed them to the \speciesnet package (e.g., as temporary files) for processing.
-  - This entire workflow is possible and can be completed within the 60-second 'Detection Speed' requirement.
 
 ---
 
@@ -194,57 +178,11 @@
     - **When:** They click the "Delete Account" button and confirm the action (e.g., by re-entering their password).
     - **Then:** Their account and all associated data (cameras, saved videos, etc.) are permanently deleted from the database.
 
-- **Camera Trap Management:** (Connecting a new camera, Disconnecting a camera, Modifying settings, 5-camera limit)
-
-  - **Connect Camera (Happy Path):**
-
-    - **Given:** A user is logged in and has 4 cameras connected.
-    - **When:** They navigate to "Add Camera" and enter a valid name and stream URL.
-    - **Then:** The new camera is added to their account, the dashboard shows "5 / 5 cameras used", and they are returned to the dashboard.
-
-  - **Connect Camera (Sad Path - Limit):**
-
-    - **Given:** A user is logged in and has 5 cameras connected.
-    - **When:** They navigate to the "Add Camera" page.
-    - **Then:** They see a message: "You have reached your 5-camera limit. Please disconnect a camera to add a new one." The "Add" button may be disabled.
-
-  - **Connect Camera (Sad Path - Invalid URL):**
-
-    - **Given:** A user is logged in.
-    - **When:** They try to add a camera with an invalid or unreachable stream URL.
-    - **Then:** The camera is **not** added, and an error message appears: "Could not connect to the stream. Please check the URL and camera status."
-
-  - **Disconnect Camera:**
-
-    - **Given:** A user is on their dashboard viewing their list of 5 cameras.
-    - **When:** They select "Camera 3" and click the "Delete" or "Disconnect" button.
-    - **Then:** "Camera 3" is removed from their account, and the dashboard updates to show "4 / 5 cameras used."
-
-  - **Modify Settings:**
-
-    - **Given:** A user is viewing the settings for "Camera 1".
-    - **When:** They change the camera's name from "Camera 1" to "Backyard Cam" and click "Save".
-    - **Then:** The settings are saved, and the camera is now named "Backyard Cam" on their dashboard.
-
-- **Real-time Video Streaming:** (Receiving the stream, Viewing the stream on the website)
-
-  - **View Stream (Happy Path):**
-
-    - **Given:** A user is logged in and has a valid, online camera.
-    - **When:** They click the "View Live" button for that camera.
-    - **Then:** The real-time video stream appears and begins playing within 5 seconds (as per the NFR).
-
-  - **View Stream (Sad Path - Camera Offline):**
-
-    - **Given:** A user is logged in.
-    - **When:** They click "View Live" for a camera that is offline or unreachable.
-    - **Then:** A placeholder image or loading spinner appears, followed by an error message: "Camera is offline or not responding."
-
 - **ML Species Detection:** (Running the `speciesnet` model, Processing the video, Displaying the results with metadata)
 
   - **Run Detection (Happy Path):**
 
-    - **Given:** A connected camera's stream is being processed by the backend.
+    - **Given:** A user uploads a video for processing.
     - **When:** The `speciesnet` package identifies one of the target species (e.g., "Black bear").
     - **Then:** A new "Detection" record is created in the database, linking the user, the species, the date/time, and the saved video clip.
 
@@ -316,3 +254,13 @@
     - **Given:** A user has _disabled_ email notifications but _enabled_ on-website notifications.
     - **When:** A new animal is detected.
     - **Then:** The user receives the "on-website" notification, but **no** email is sent.
+
+## Future Features (Post-MVP)
+
+- **Live Camera Stream Integration (V2.0):**
+
+  - Introduce the ability for users to connect live camera trap streams (e.g., via RTSP) for real-time monitoring and detection.
+  - This will re-introduce the "live view" and "real-time detection" features that were removed from the MVP scope.
+
+- **Team/Organization Accounts:**
+  - Allow multiple users from the same organization to share access to detections.
