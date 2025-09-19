@@ -3,8 +3,8 @@ FROM python:3.11-slim
 
 # Update the package list and upgrade all installed packages to their latest versions
 RUN apt-get update && apt-get upgrade -y && \
-    # --- ADD THIS LINE TO INSTALL THE MISSING GRAPHICS LIBRARY ---
-    apt-get install -y libgl1-mesa-glx && \
+    # Install the graphics library required by OpenCV using its modern package name
+    apt-get install -y libgl1 && \
     # Clean up the package cache to keep the image size small
     rm -rf /var/lib/apt/lists/*
 
@@ -25,3 +25,4 @@ RUN mkdir -p uploads
 
 # The command to run your application using the Gunicorn server
 CMD ["gunicorn", "--bind", "0.0.0.0:10000", "app:app"]
+
