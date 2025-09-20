@@ -111,21 +111,16 @@ def predictEachAnimal(detections_dict, chosen_model):
     return final_results
 
 def extractTimestamps(flatPredictions):
+
     frame_data = {}
 
+
+
     for prediction in flatPredictions:
+
         filename = os.path.basename(prediction['filepath'])
         timestamp = int(filename.split('.')[0])
-        # A conceptual example of safe access
-        classifications_dict = prediction.get('prediction', {}).get('classifications', {})
-        classes_list = classifications_dict.get('classes', [';blank']) 
-
-    
-        if classes_list:
-            classifications_string = classes_list[0]
-        else:
-            classifications_string = ';blank' 
-            
+        classifications_string = prediction['prediction']['classifications']['classes'][0] # change this later
         split_top_class = classifications_string.split(';')
         top_prediction = split_top_class[-1]
 
@@ -135,8 +130,11 @@ def extractTimestamps(flatPredictions):
         else:
             if top_prediction in frame_data[timestamp]:
                 frame_data[timestamp][top_prediction] += 1
+
             else:
                 frame_data[timestamp][top_prediction] = 1
+
+
 
     return frame_data
 
