@@ -15,6 +15,9 @@ app.secret_key = os.environ.get('SECRET_KEY', 'a-default-secret-key-for-local-de
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+if not os.path.exists(app.config['UPLOAD_FOLDER']):
+    os.makedirs(app.config['UPLOAD_FOLDER'])
+
 redis_url = os.environ.get('REDIS_URL')
 redis_conn = Redis.from_url(redis_url or 'redis://localhost:6379')
 
