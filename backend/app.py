@@ -4,11 +4,8 @@ from werkzeug.utils import secure_filename
 from ml.main import analyze
 from redis import Redis
 from rq import Queue
-# B2-specific imports
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
-# Import for CORS
 from flask_cors import CORS
-# Import for local environment variables
 from dotenv import load_dotenv
 
 # Load environment variables from a .env file for local development
@@ -20,9 +17,9 @@ info = InMemoryAccountInfo()
 b2_api = B2Api(info)
 key_id = os.environ.get('B2_KEY_ID')
 application_key = os.environ.get('B2_APPLICATION_KEY')
-bucket_name = os.environ.get('B2_BUCKET_NAME')
+bucket_id = os.environ.get('B2_BUCKET_ID')
 b2_api.authorize_account("production", key_id, application_key)
-bucket = b2_api.get_bucket_by_name(bucket_name)
+bucket = b2_api.get_bucket_by_id(bucket_id)
 
 # --- Flask App Configuration ---
 ALLOWED_EXTENSIONS = {'mp4', 'webm', 'avi', 'mov', 'wb'}
@@ -30,7 +27,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a-default-secret-key-for-local-dev')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
-# Enable CORS to allow your frontend to make requests
 CORS(app)
 
 # --- Redis/RQ Configuration ---
@@ -56,7 +52,7 @@ def upload_file():
             
             # --- UPLOAD TO B2 LOGIC ---
             try:
-                print(f"Uploading {filename} to B2 bucket: {bucket_name}...")
+                print(f"Uploading {filename} to B2 bucket...")
                 file_info = bucket.upload_bytes(
                     file.read(),
                     file_name=filename
@@ -69,7 +65,7 @@ def upload_file():
                 job = q.enqueue_call(
                     func=analyze, 
                     args=(download_url,), 
-                    timeout=1800 # Increased timeout to 30 minutes for long videos
+                    timeout=1800 
                 )
                 return jsonify({'job_id': job.id})
             except Exception as e:
