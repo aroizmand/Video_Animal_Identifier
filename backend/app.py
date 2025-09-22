@@ -1,26 +1,41 @@
 import os
-from flask import Flask, flash, jsonify, request, redirect, send_from_directory
+from flask import Flask, jsonify, request, redirect
 from werkzeug.utils import secure_filename
 from ml.main import analyze
 from redis import Redis
 from rq import Queue
+# B2-specific imports
+from b2sdk.v2 import B2Api, InMemoryAccountInfo
+# Import for CORS
+from flask_cors import CORS
+# Import for local environment variables
+from dotenv import load_dotenv
 
-UPLOAD_FOLDER = 'uploads'
+# Load environment variables from a .env file for local development
+load_dotenv()
+
+# --- B2 Cloud Storage Configuration ---
+# Initialize B2 API info from environment variables
+info = InMemoryAccountInfo()
+b2_api = B2Api(info)
+key_id = os.environ.get('B2_KEY_ID')
+application_key = os.environ.get('B2_APPLICATION_KEY')
+bucket_name = os.environ.get('B2_BUCKET_NAME')
+b2_api.authorize_account("production", key_id, application_key)
+bucket = b2_api.get_bucket_by_name(bucket_name)
+
+# --- Flask App Configuration ---
 ALLOWED_EXTENSIONS = {'mp4', 'webm', 'avi', 'mov', 'wb'}
-
 app = Flask(__name__)
-
 app.secret_key = os.environ.get('SECRET_KEY', 'a-default-secret-key-for-local-dev')
-
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
+# Enable CORS to allow your frontend to make requests
+CORS(app)
 
+# --- Redis/RQ Configuration ---
 redis_url = os.environ.get('REDIS_URL')
 redis_conn = Redis.from_url(redis_url or 'redis://localhost:6379')
-
 q = Queue(connection=redis_conn)
 
 def allowed_file(filename):
@@ -28,56 +43,54 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/', methods=['GET', 'POST'])
-
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
+            return jsonify({'error': 'No file part'}), 400
         file = request.files['file']
-
         if file.filename == '':
-            flash('No selected file')
-            return redirect(request.url)
+            return jsonify({'error': 'No selected file'}), 400
         
         if file and allowed_file(file.filename):
-            flash('passed')
             filename = secure_filename(file.filename)
-            saved_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(saved_file_path)
-            path_for_worker = saved_file_path.replace('\\', '/')
+            
+            # --- UPLOAD TO B2 LOGIC ---
+            try:
+                print(f"Uploading {filename} to B2 bucket: {bucket_name}...")
+                file_info = bucket.upload_bytes(
+                    file.read(),
+                    file_name=filename
+                )
+                print("Upload to B2 successful.")
+                
+                download_url = b2_api.get_download_url_for_fileid(file_info.id_)
+                print(f"Enqueuing job for URL: {download_url}")
+                
+                job = q.enqueue_call(
+                    func=analyze, 
+                    args=(download_url,), 
+                    timeout=1800 # Increased timeout to 30 minutes for long videos
+                )
+                return jsonify({'job_id': job.id})
+            except Exception as e:
+                print(f"An error occurred during B2 upload or job enqueuing: {e}")
+                return jsonify({'error': 'Failed to process file.'}), 500
 
-            job = q.enqueue_call(
-                func=analyze, 
-                args=(path_for_worker,), 
-                timeout=600
-            )
-
-            return jsonify({'job_id': job.id})
-
+    # The GET request serves the HTML form for simple testing
     return '''
     <!doctype html>
     <title>Upload new File</title>
     <h1>Upload new File</h1>
+    <p>This is a simple test form. Use the real frontend for progress updates.</p>
     <form method=post enctype=multipart/form-data>
       <input type=file name=file>
       <input type=submit value=Upload>
     </form>
     '''
 
-
-@app.route('/uploads/<name>')
-def download_file(name):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], name)
-
-app.add_url_rule(
-    "/uploads/<name>", endpoint="download_file", build_only=True
-)
-
 @app.route("/results/<job_id>", methods=['GET'])
 def get_results(job_id):
     job = q.fetch_job(job_id)
-
     if job:
         response_object = {
             'status': job.get_status(),
@@ -87,6 +100,5 @@ def get_results(job_id):
         }
         return jsonify(response_object)
     else:
-        return "Job not found", 404
-
+        return jsonify({'error': 'Job not found'}), 404
 
