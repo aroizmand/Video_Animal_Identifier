@@ -1,4 +1,3 @@
-from speciesnet import DEFAULT_MODEL
 from .predictions import split_video_fun, detectAllAnimals, predictEachAnimal, extractTimestamps, createEventSummary
 import tempfile
 from rq import get_current_job
@@ -11,7 +10,7 @@ def analyze(video_file):
     with tempfile.TemporaryDirectory() as unique_temp_dir:
 
         # --- Stage 1: Splitting Video ---
-        job.meta['status'] = 'Splitting video...'
+        job.meta['status'] = 'splitting video...'
         job.meta['progress'] = 10
         job.save_meta()
         split_video_fun(video_file, unique_temp_dir)
@@ -24,22 +23,22 @@ def analyze(video_file):
             return []
 
         # --- Stage 2: Detecting Animals ---
-        job.meta['status'] = 'Detecting animals...'
+        job.meta['status'] = 'detecting animals...'
         job.meta['progress'] = 30
         job.save_meta()
-        detections_dict = detectAllAnimals(unique_temp_dir, DEFAULT_MODEL)
+        detections_dict = detectAllAnimals(unique_temp_dir)
         total_detections = sum(len(p.get('detections', [])) for p in detections_dict.get('predictions', []))
         print(f"DEBUG: Detector found a total of {total_detections} potential animals.")
 
         # --- Stage 3: Classifying Each Animal ---
-        job.meta['status'] = 'Classifying each animal...'
+        job.meta['status'] = 'classifying each animal...'
         job.meta['progress'] = 60
         job.save_meta()
-        predictions_dict = predictEachAnimal(detections_dict, DEFAULT_MODEL)
+        predictions_dict = predictEachAnimal(detections_dict)
         print(f"DEBUG: Classifier generated {len(predictions_dict)} individual predictions.")
 
         # --- Stage 4: Grouping by Frame ---
-        job.meta['status'] = 'Generating final summary...'
+        job.meta['status'] = 'generating final summary...'
         job.meta['progress'] = 90
         job.save_meta()
         frame_data  = extractTimestamps(predictions_dict)

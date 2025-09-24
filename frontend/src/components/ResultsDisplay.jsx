@@ -1,14 +1,11 @@
-export type ResultEvent = {
-  species: string;
-  max_count: number;
-  start: number;
-  end: number;
-};
+import React from "react";
 
-export function Results({ result }: { result: ResultEvent }) {
+export function Results({ result }) {
   return (
-    <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-      <p className="font-semibold text-lg text-indigo-700">{result.species}</p>
+    <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-left">
+      <p className="font-semibold text-lg text-indigo-700 capitalize">
+        {result.species}
+      </p>
       <div className="grid grid-cols-3 gap-4 mt-2 text-sm text-gray-600">
         <p>
           <span className="font-medium">Start:</span> {result.start}s
