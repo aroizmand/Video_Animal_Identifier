@@ -4,6 +4,8 @@ import numpy as np
 from types import SimpleNamespace
 from PIL import Image
 import cv2
+from .models import DETECTOR, CLASSIFIER
+
 
 DETECTOR_INPUT_SIZE = (640, 640)
 CLASSIFIER_INPUT_SIZE = (480, 480)
@@ -69,14 +71,15 @@ def structure_the_results(detection_list):
     return detections_dict
 
 
-def detectAllAnimals(img_directory, chosen_model):
+def detectAllAnimals(img_directory):
     """Runs the object detector on all images in a directory."""
     full_image_paths = get_all_full_image_paths_from(img_directory)
     if not full_image_paths:
         return {'predictions': []}
 
     all_results = []
-    model = SpeciesNetDetector(chosen_model)
+    model = DETECTOR
+
 
     for image_path in full_image_paths:
         try:
@@ -97,9 +100,9 @@ def detectAllAnimals(img_directory, chosen_model):
     return structure_the_results(all_results)
 
 
-def predictEachAnimal(detections_dict, chosen_model):
+def predictEachAnimal(detections_dict):
     """Runs the species classifier on each detected animal."""
-    model = SpeciesNetClassifier(chosen_model)
+    model = CLASSIFIER
     final_results = []
 
     for entry in detections_dict.get('predictions', []):
