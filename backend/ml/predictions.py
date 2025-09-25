@@ -4,7 +4,7 @@ import numpy as np
 from types import SimpleNamespace
 from PIL import Image
 import cv2
-from .models import DETECTOR, CLASSIFIER
+from .models import get_detector, get_classifier
 
 
 DETECTOR_INPUT_SIZE = (640, 640)
@@ -78,7 +78,7 @@ def detectAllAnimals(img_directory):
         return {'predictions': []}
 
     all_results = []
-    model = DETECTOR
+    model = get_detector()
 
 
     for image_path in full_image_paths:
@@ -102,7 +102,7 @@ def detectAllAnimals(img_directory):
 
 def predictEachAnimal(detections_dict):
     """Runs the species classifier on each detected animal."""
-    model = CLASSIFIER
+    model = get_classifier()
     final_results = []
 
     for entry in detections_dict.get('predictions', []):
