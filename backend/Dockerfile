@@ -1,5 +1,5 @@
 # Start Python base image
-FROM bitnami/python:3.11-slim
+FROM python:3.11-slim
 
 # Install system dependencies needed for OpenCV and video codecs
 RUN apt-get update && apt-get upgrade -y && \
