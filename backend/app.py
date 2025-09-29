@@ -7,6 +7,7 @@ from rq import Queue
 from b2sdk.v2 import B2Api, InMemoryAccountInfo
 from flask_cors import CORS
 from dotenv import load_dotenv
+from werkzeug.exceptions import RequestEntityTooLarge
 
 # Load environment variables from a .env file for local development
 load_dotenv()
@@ -27,6 +28,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'a-default-secret-key-for-local-dev')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1000 * 1000
 
+
 CORS(app)
 
 # --- Redis/RQ Configuration ---
@@ -37,6 +39,11 @@ q = Queue(connection=redis_conn)
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.errorhandler(413)
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(e):
+    return jsonify({'error': 'File is too large. Maximum size is 100 MB.'}), 413
 
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
